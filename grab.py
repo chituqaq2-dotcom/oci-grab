@@ -51,7 +51,7 @@ if MODE == "micro" and len(ex) >= 1:
 # boot volume guard (Always Free 200 GB total)
 used = 0
 for ad in idc.list_availability_domains(TENANCY).data:
-    for b in oci.pagination.list_call_get_all_results(oci.core.BlockstorageClient(cfg).list_boot_volumes, ad.name, COMP).data:
+    for b in oci.pagination.list_call_get_all_results(oci.core.BlockstorageClient(cfg).list_boot_volumes, availability_domain=ad.name, compartment_id=COMP).data:
         if b.lifecycle_state not in ("TERMINATED", "TERMINATING"): used += b.size_in_gbs or 0
 if used + SPEC["boot"] > 200:
     print(f"boot volumes would exceed 200 GB free ({used}+{SPEC['boot']}) -> abort"); sys.exit(1)
