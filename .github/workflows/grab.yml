@@ -1,0 +1,26 @@
+name: grab
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "a1 or micro"
+        default: "a1"
+concurrency: { group: grab, cancel-in-progress: false }
+jobs:
+  grab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -q oci
+      - run: python grab.py
+        env:
+          MODE: ${{ github.event.inputs.mode || 'a1' }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_KEY: ${{ secrets.OCI_KEY }}
+          OCI_REGION: ap-tokyo-1
+          SSH_PUBKEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDD7RiRgfkeiOuFa2go1dNzmpbu+6rr+G0g2GLaWulTsQyzCllZtBD18bGfJsv71L/KECUuveZGrZTvEiKWgMNxyI0oQ4wLPkND5r47C8ZvBgPbOGfG1E8nFQmlkhNxGXDEfjf0EOdMKwI2DwbTxo7yAjxbeS5e42tpg/D25EBPolsfAGxMsoilTvTTrvKM1UGiGM4faV5Cf1mOvWvXX3URuQ5qZMI6zbnEF5JM9VArRrCPfjzg9EOZE3XaMlGBG8EWtpW7z7PuP8rllrr1MA0flCXG7XKikhPN62sPG04tCUeNWaNy7bXZ5Kg1cRrcDAv0e5oYCq1jz8i1u0reD5d"
