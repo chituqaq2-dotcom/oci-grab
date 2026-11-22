@@ -1,3 +1,4 @@
+import time
 #!/usr/bin/env python3
 """Grab Oracle Always Free instances in Tokyo. Free shapes only: A1.Flex <=2 OCPU/12 GB, E2.1.Micro.
 Never creates anything paid. Skips if the target instance already exists."""
@@ -97,6 +98,23 @@ try:
     r = cc.launch_instance(d).data
     print(f"SUCCESS launched {r.display_name} {r.shape} state={r.lifecycle_state}")
     with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as f: f.write(f"## ✅ {r.display_name} launched\n")
+    ip = "?"
+    for _ in range(30):  # wait up to ~5 min for the public IP
+        time.sleep(10)
+        try:
+            for a in cc.list_vnic_attachments(COMP, instance_id=r.id).data:
+                ip = vn.get_vnic(a.vnic_id).data.public_ip or ip
+        except Exception as ex: print("ip lookup:", ex)
+        if ip != "?": break
+    print(f"public IP: {ip}")
+    tok, repo = os.environ.get("GITHUB_TOKEN"), os.environ.get("GITHUB_REPOSITORY")
+    if tok and repo:
+        import json, urllib.request
+        body = {"title": f"🎉 抢到了 {r.display_name} ({r.shape}) IP {ip}",
+                "body": f"{r.display_name} {SPEC['ocpus']}C/{SPEC['mem']}G launched in Tokyo.\nPublic IP: `{ip}`\nTell Hark: 抢到了 — it will install the node and add it to the subscription."}
+        req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues", data=json.dumps(body).encode(),
+              headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"}, method="POST")
+        print("issue:", urllib.request.urlopen(req).status)
 except oci.exceptions.ServiceError as e:
     if e.status in (500, 429) or "capacity" in str(e.message).lower():
         print(f"no luck: {e.status} {e.message}"); sys.exit(0)   # normal: try again next run

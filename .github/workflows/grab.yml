@@ -7,6 +7,7 @@ on:
       mode:
         description: "a1 | micro | open:443"
         default: "a1"
+permissions: { contents: read, issues: write }
 concurrency: { group: grab, cancel-in-progress: false }
 jobs:
   grab:
@@ -23,4 +24,5 @@ jobs:
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
           OCI_KEY: ${{ secrets.OCI_KEY }}
           OCI_REGION: ap-tokyo-1
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SSH_PUBKEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDD7RiRgfkeiOuFa2go1dNzmpbu+6rr+G0g2GLaWulTsQyzCllZtBD18bGfJsv71L/KECUuveZGrZTvEiKWgMNxyI0oQ4wLPkND5r47C8ZvBgPbOGfG1E8nFQmlkhNxGXDEfjf0EOdMKwI2DwbTxo7yAjxbeS5e42tpg/D25EBPolsfAGxMsoilTvTTrvKM1UGiGM4faV5Cf1mOvWvXX3URuQ5qZMI6zbnEF5JM9VArRrCPfjzg9EOZE3XaMlGBG8EWtpW7z7PuP8rllrr1MA0flCXG7XKikhPN62sPG04tCUeNWaNy7bXZ5Kg1cRrcDAv0e5oYCq1jz8i1u0reD5d"
