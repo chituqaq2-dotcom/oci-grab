@@ -31,6 +31,26 @@ cfg = {"user": os.environ["OCI_USER"], "fingerprint": os.environ["OCI_FINGERPRIN
 oci.config.validate_config(cfg)
 cc = oci.core.ComputeClient(cfg); vn = oci.core.VirtualNetworkClient(cfg); idc = oci.identity.IdentityClient(cfg)
 
+if MODE.startswith("open"):  # open TCP ports in the public subnet's security lists, e.g. MODE=open:443
+    ports = [int(p) for p in MODE.split(":")[1].split(",")]
+    for sub in vn.list_subnets(COMP).data:
+        if sub.prohibit_public_ip_on_vnic: continue
+        for sl_id in sub.security_list_ids:
+            sl = vn.get_security_list(sl_id).data
+            rules = list(sl.ingress_security_rules); changed = False
+            for p in ports:
+                if any(r.protocol == "6" and r.source == "0.0.0.0/0" and r.tcp_options and r.tcp_options.destination_port_range
+                       and r.tcp_options.destination_port_range.min <= p <= r.tcp_options.destination_port_range.max for r in rules):
+                    print(f"{sl.display_name}: {p} already open"); continue
+                rules.append(oci.core.models.IngressSecurityRule(protocol="6", source="0.0.0.0/0", is_stateless=False,
+                    tcp_options=oci.core.models.TcpOptions(destination_port_range=oci.core.models.PortRange(min=p, max=p))))
+                changed = True; print(f"{sl.display_name}: opening {p}")
+            if changed:
+                vn.update_security_list(sl_id, oci.core.models.UpdateSecurityListDetails(ingress_security_rules=rules))
+    for i in oci.pagination.list_call_get_all_results(cc.list_instances, COMP).data:
+        if i.lifecycle_state == "RUNNING": print(f"instance {i.display_name} {i.shape} RUNNING")
+    sys.exit(0)
+
 SPEC = {
   "a1":    dict(shape="VM.Standard.A1.Flex", ocpus=2, mem=12, boot=100, name="tokyo-arm"),
   "micro": dict(shape="VM.Standard.E2.1.Micro", ocpus=None, mem=None, boot=50, name="tokyo-micro"),

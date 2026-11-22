@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "a1 or micro"
+        description: "a1 | micro | open:443"
         default: "a1"
 concurrency: { group: grab, cancel-in-progress: false }
 jobs:
