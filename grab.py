@@ -7,8 +7,20 @@ MODE = os.environ.get("MODE", "a1")          # a1 | micro
 TENANCY = os.environ["OCI_TENANCY"]
 COMP = os.environ.get("OCI_COMPARTMENT") or TENANCY
 SSH = os.environ["SSH_PUBKEY"]
+import re
+def _key(raw):
+    raw = raw.replace("\\n", "\n").replace("\r", "").strip()
+    m = re.search(r"-----BEGIN (RSA )?PRIVATE KEY-----.*?-----END (RSA )?PRIVATE KEY-----", raw, re.S)
+    if not m:
+        print(f"OCI_KEY looks wrong: len={len(raw)} lines={raw.count(chr(10))+1} "
+              f"has_PRIVATE={'PRIVATE KEY' in raw} has_PUBLIC={'PUBLIC KEY' in raw} -> paste the *private* .pem")
+        sys.exit(1)
+    body = m.group(0)
+    head, tail = body.split("-----", 2)[1], body.rsplit("-----", 2)[1]
+    b64 = re.sub(r"-----[^-]+-----|\s", "", body)
+    return f"-----{head}-----\n" + "\n".join(b64[i:i+64] for i in range(0, len(b64), 64)) + f"\n-----{tail}-----\n"
 cfg = {"user": os.environ["OCI_USER"], "fingerprint": os.environ["OCI_FINGERPRINT"], "tenancy": TENANCY,
-       "region": os.environ.get("OCI_REGION", "ap-tokyo-1"), "key_content": os.environ["OCI_KEY"]}
+       "region": os.environ.get("OCI_REGION", "ap-tokyo-1"), "key_content": _key(os.environ["OCI_KEY"])}
 oci.config.validate_config(cfg)
 cc = oci.core.ComputeClient(cfg); vn = oci.core.VirtualNetworkClient(cfg); idc = oci.identity.IdentityClient(cfg)
 
