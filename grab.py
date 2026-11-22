@@ -12,6 +12,13 @@ def _key(raw):
     raw = raw.replace("\\n", "\n").replace("\r", "").strip()
     m = re.search(r"-----BEGIN (RSA )?PRIVATE KEY-----.*?-----END (RSA )?PRIVATE KEY-----", raw, re.S)
     if not m:
+        b64 = "".join(l.strip() for l in raw.splitlines() if re.fullmatch(r"[A-Za-z0-9+/=]+", l.strip() or "!"))
+        if len(b64) > 1000:
+            from cryptography.hazmat.primitives import serialization as S
+            for h in ("PRIVATE KEY", "RSA PRIVATE KEY"):
+                pem = f"-----BEGIN {h}-----\n" + "\n".join(b64[i:i+64] for i in range(0, len(b64), 64)) + f"\n-----END {h}-----\n"
+                try: S.load_pem_private_key(pem.encode(), None); print(f"OCI_KEY had no BEGIN/END lines; rebuilt as {h}"); return pem
+                except Exception: pass
         print(f"OCI_KEY looks wrong: len={len(raw)} lines={raw.count(chr(10))+1} "
               f"has_PRIVATE={'PRIVATE KEY' in raw} has_PUBLIC={'PUBLIC KEY' in raw} -> paste the *private* .pem")
         sys.exit(1)
