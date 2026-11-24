@@ -111,7 +111,8 @@ try:
     if tok and repo:
         import json, urllib.request
         body = {"title": f"🎉 抢到了 {r.display_name} ({r.shape}) IP {ip}",
-                "body": f"{r.display_name} {SPEC['ocpus']}C/{SPEC['mem']}G launched in Tokyo.\nPublic IP: `{ip}`\nTell Hark: 抢到了 — it will install the node and add it to the subscription."}
+                "body": f"{r.display_name} {SPEC['ocpus']}C/{SPEC['mem']}G launched in Tokyo.\nPublic IP: `{ip}`\nTell Hark: 抢到了 — it will install the node and add it to the subscription.\n\n@chituqaq2-dotcom",
+                "assignees": ["chituqaq2-dotcom"]}
         req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues", data=json.dumps(body).encode(),
               headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"}, method="POST")
         print("issue:", urllib.request.urlopen(req).status)
