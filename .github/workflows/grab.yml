@@ -1,7 +1,7 @@
 name: grab
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/20 * * * *"   # GitHub drops many; each run loops ~5.8h itself
   workflow_dispatch:
     inputs:
       mode:
@@ -12,11 +12,23 @@ concurrency: { group: grab, cancel-in-progress: false }
 jobs:
   grab:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
       - run: pip install -q oci
-      - run: python grab.py
+      - name: grab loop (every 5 min, ~5.7h)
+        run: |
+          MODE="${MODE:-a1}"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$MODE" != "a1" ]; then python grab.py; exit $?; fi
+          end=$(( $(date +%s) + 340*60 ))
+          while [ $(date +%s) -lt $end ]; do
+            echo "== try $(date -u +%H:%M:%S)"
+            python grab.py 2>&1 | tee /tmp/out.txt
+            rc=${PIPESTATUS[0]}
+            if grep -q "already exists\|^issue:" /tmp/out.txt; then echo "got it, stop"; exit 0; fi
+            [ $rc -ne 0 ] && echo "rc=$rc (continuing)"
+            sleep 300
+          done
         env:
           MODE: ${{ github.event.inputs.mode || 'a1' }}
           OCI_USER: ${{ secrets.OCI_USER }}
